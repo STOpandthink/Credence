@@ -1,0 +1,12 @@
+2
+2
+Official CFAR Questions
+appliedrationality.org/uploads/games/credence/OfficialCfarQuestions.xml
+0
+True
+True
+Awesome Sauce
+appliedrationality.org/uploads/games/credence/Sauce.xml
+1
+False
+True
