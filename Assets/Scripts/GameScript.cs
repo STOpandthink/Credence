@@ -21,6 +21,10 @@ public class GameScript : MonoBehaviour {
 	private readonly Color answerAColor = Color.cyan;
 	private readonly Color answerBColor = Color.green;
 	private const string saveGameFilename = "SaveGame";
+	private readonly int[] percentages = {50, 60, 70, 80, 90, 99};
+	private readonly string[] labelKeysA = {"a", "z", "e", "r", "t", "y"};
+	private readonly string[] labelKeysB = {"q", "s", "d", "f", "g", "h"};
+	private const int answersPerLine = 5;
 	
 	// Current game state.
 	GameStep gameStep = GameStep.Start;
@@ -252,46 +256,35 @@ public class GameScript : MonoBehaviour {
 		GUILayout.EndVertical();
 	}
 	
-	void GuiAnswerButtons(){
-		GUILayout.BeginVertical("box");
-		// Buttons for answer A
-		if(FirstTutorialQuestion) GUILayout.Label("If you think A is the correct answer, and you think the probability of you being right is 70%, then press the 70% button in the A row (top, cyan row).");
-		string[] labelkeys = {"a", "z", "e", "r", "t", "y"};
-		int index = 0;
+	void GuiAddButtonLine(string[] labelKeys, string mainLabel, Color lowColor, Color highColor)
+	{
 		GUILayout.BeginHorizontal();
-		for(int percent = 50; percent <= 100; percent += 10){
-			if(percent == 100) percent = 99;
-			GUILayout.Label(labelkeys[index]);
-			GUI.backgroundColor = Color.Lerp(answerBColor, answerAColor, percent / 100.0f);
+		for(int i = 0; i <= answersPerLine; i++){
+			GUILayout.Label(labelKeys[i] + ":");
+			int percent = percentages[i];
+			GUI.backgroundColor = Color.Lerp(lowColor, highColor, percent / 100.0f);
 			if(GUILayout.Button(percent + "%", GUI.skin.customStyles[4])){
 				GiveAnswer(percent, !reverseOptions);
 			}
-			index += 1;
 		}
-		GUI.contentColor = answerAColor;
-		GUILayout.Label("A", GUI.skin.customStyles[2], GUILayout.Width(75f));
-		GUI.contentColor = Color.white;
-		GUILayout.EndHorizontal();
-		
-		// Buttons for answer B
-		if(FirstTutorialQuestion) GUILayout.Label("If you don't have any idea what the correct answer is, but you think it's slightly more likely to be B, then press the 50% button in the B row (bottom, green row).");
-		labelkeys = new string[] {"q", "s", "d", "f", "g", "h"};
-		index = 0;
-		GUILayout.BeginHorizontal();
-		for(int percent = 50; percent <= 100; percent += 10){
-			if(percent == 100) percent = 99;
-			GUILayout.Label(labelkeys[index]);
-			GUI.backgroundColor = Color.Lerp(answerAColor, answerBColor, percent / 100.0f);
-			if(GUILayout.Button(percent + "%", GUI.skin.customStyles[4])){
-				GiveAnswer(percent, reverseOptions);
-			}
-			index += 1;
-		}
-		GUI.contentColor = answerBColor;
-		GUILayout.Label("B", GUI.skin.customStyles[2], GUILayout.Width(75f));
+		GUI.contentColor = highColor;
+		GUILayout.Label(mainLabel, GUI.skin.customStyles[2], GUILayout.Width(75f));
 		GUI.contentColor = Color.white;
 		GUI.backgroundColor = Color.white;
 		GUILayout.EndHorizontal();
+	}
+	
+	void GuiAnswerButtons(){
+		GUILayout.BeginVertical("box");
+		
+		// Buttons for answer A
+		if(FirstTutorialQuestion) GUILayout.Label("If you think A is the correct answer, and you think the probability of you being right is 70%, then press the 70% button in the A row (top, cyan row).");
+		GuiAddButtonLine(labelKeysA, "A", answerBColor, answerAColor);
+		
+		// Buttons for answer B
+		if(FirstTutorialQuestion) GUILayout.Label("If you don't have any idea what the correct answer is, but you think it's slightly more likely to be B, then press the 50% button in the B row (bottom, green row).");
+		GuiAddButtonLine(labelKeysB, "B", answerAColor, answerBColor);
+		
 		GUILayout.EndVertical();
 	}
 	
