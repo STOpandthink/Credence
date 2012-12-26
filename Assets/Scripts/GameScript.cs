@@ -22,10 +22,12 @@ public class GameScript : MonoBehaviour {
 	private readonly Color answerBColor = Color.green;
 	private const string saveGameFilename = "SaveGame";
 	private readonly int[] percentages = {50, 60, 70, 80, 90, 99};
-	private readonly string[] labelKeysA = {"a", "z", "e", "r", "t", "y"};
-	private readonly string[] labelKeysB = {"q", "s", "d", "f", "g", "h"};
+	private readonly string[] labelKeysA = {"q", "w", "e", "r", "t", "y"};
+	private readonly string[] labelKeysB = {"a", "s", "d", "f", "g", "h"};
 	private const int answersPerLine = 5;
-	
+
+	GUIStyle highlightedStyle;
+
 	// Current game state.
 	GameStep gameStep = GameStep.Start;
 	List<Answer> answers = new List<Answer>();
@@ -47,6 +49,11 @@ public class GameScript : MonoBehaviour {
 	Vector2 uiScrollPosition;
 	bool uiShowAllInstructions = false;
 	int uiIntructionsPage = -2;
+	
+	// Keyboard control game state
+	string lastPressedKey = "";
+	string highlightedKey = "";
+	bool pressingValidateKey = false;
 	
 	#region Properties
 	static bool TouchScreen { get { return Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer; } }
@@ -166,11 +173,15 @@ public class GameScript : MonoBehaviour {
 	
 	void OnGUI(){
 		GUI.skin = defaultSkin;
-		
+
 		if(Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer){
 			Input.multiTouchEnabled = false;
-			GUI.skin.customStyles[4].hover = GUI.skin.customStyles[4].normal;
+			GUI.skin.customStyles[4].hover = GUI.skin.customStyles[4].normal; // <-- wait, I think this gets saved in the data!
 		}
+
+		// Set highlighted style for keyboard shortcuts (inefficientà
+		highlightedStyle = new GUIStyle(GUI.skin.customStyles[4]);
+		highlightedStyle.normal = highlightedStyle.hover;
 		
 		if(restartingGame){
 			RestartGameGUI();
@@ -256,14 +267,48 @@ public class GameScript : MonoBehaviour {
 		GUILayout.EndVertical();
 	}
 	
+	bool HitValidateKey() {
+		bool pressing = Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter) || Input.GetKey(KeyCode.Space);
+		if (pressing != pressingValidateKey){
+			pressingValidateKey = pressing;
+			return pressing;
+		} else {
+			return false;
+		}
+	}
+	
 	void GuiAddButtonLine(string[] labelKeys, string mainLabel, Color lowColor, Color highColor)
 	{
+		bool validated = HitValidateKey();
 		GUILayout.BeginHorizontal();
 		for(int i = 0; i <= answersPerLine; i++){
-			GUILayout.Label(labelKeys[i] + ":");
+			// Update logic
+			string key = labelKeys[i];
+			if (Input.GetKey(key)){
+				if (lastPressedKey == "")
+				{
+					if (highlightedKey == key){
+						highlightedKey = "";
+					} else {
+						highlightedKey = key;
+					}
+					lastPressedKey = key;
+				}
+			} else{
+				if (lastPressedKey == key) {
+					lastPressedKey = "";
+				}
+			}
+			// Style
+			GUIStyle style = GUI.skin.customStyles[4];
+			if (highlightedKey == key){
+				style = highlightedStyle;
+			}
+			// Actual layout
+			GUILayout.Label(key + ":");
 			int percent = percentages[i];
 			GUI.backgroundColor = Color.Lerp(lowColor, highColor, percent / 100.0f);
-			if(GUILayout.Button(percent + "%", GUI.skin.customStyles[4])){
+			if(GUILayout.Button(percent + "%", style) || (validated && (highlightedKey == key))){
 				GiveAnswer(percent, !reverseOptions);
 			}
 		}
@@ -275,6 +320,14 @@ public class GameScript : MonoBehaviour {
 	}
 	
 	void GuiAnswerButtons(){
+		// Add keyboard shortcuts explanation text
+		if (highlightedKey != ""){
+			GUILayout.Label("(press Space or Enter to validate)");
+		}
+		else{
+			GUILayout.Label(""); // Seems to maybe perhaps avoid some problems
+		}
+		
 		GUILayout.BeginVertical("box");
 		
 		// Buttons for answer A
@@ -373,13 +426,13 @@ public class GameScript : MonoBehaviour {
 		GUILayout.FlexibleSpace();
 		
 		if(answers.Count >= minAnswersForGraph && answers.Count % answersBetweenGraph == 0){
-			ViewGraphButton(true);
+			ViewGraphButton(true, HitValidateKey());
 		} else {
 			// Settings.
 			if(tutorialFinished){
 				GUIEx.RightAligned(() => {
 					GUILayout.BeginHorizontal("box");
-					ViewGraphButton(false);
+					ViewGraphButton(false, false);
 					if(GUILayout.Button("OPTIONS")){
 						gameStep = GameStep.Options;
 					}
@@ -387,11 +440,13 @@ public class GameScript : MonoBehaviour {
 				});
 			}
 			
-			bool nextQuestion = tutorialFinished || !SecondTutorialQuestion;
-			if(GUILayout.Button(nextQuestion ? "NEXT QUESTION" : "OKAY, GET MORE POINTS. GOT IT.", GUILayout.ExpandWidth(true))){
-				if(nextQuestion){
+			if (tutorialFinished || !SecondTutorialQuestion)
+			{
+				if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
 					GoToNextQuestion();
-				} else {
+				}
+			} else {
+				if(GUILayout.Button("OKAY, GET MORE POINTS. GOT IT.", GUILayout.ExpandWidth(true)) || HitValidateKey()){
 					gameStep = GameStep.ExplainScores;
 				}
 			}
@@ -400,8 +455,8 @@ public class GameScript : MonoBehaviour {
 		EndLayout();
 	}
 	
-	void ViewGraphButton(bool expandButton){
-		if(GUILayout.Button("VIEW GRAPH", GUILayout.ExpandWidth(expandButton))){
+	void ViewGraphButton(bool expandButton, bool isKeyPressed){
+		if(GUILayout.Button("VIEW GRAPH", GUILayout.ExpandWidth(expandButton)) || isKeyPressed){
 			selectedBar = -1;
 			bars = Bar.GetBars(answers);
 			gameStep = GameStep.Graph;
@@ -414,6 +469,9 @@ public class GameScript : MonoBehaviour {
 		reverseOptions = Random.value >= 0.5f;
 		tutorialAnsweredOneQuestion = true;
 		gameStep = GameStep.Question;
+		// Reinit keyboard shortcuts
+		lastPressedKey = "";
+		highlightedKey = "";
 	}
 	
 	void QuestionDatabasesGUI(){
@@ -627,7 +685,7 @@ public class GameScript : MonoBehaviour {
 			}
 		}
 		
-		if(GUILayout.Button(tutorialFinished ? "CONTINUE" : "END TUTORIAL", GUILayout.ExpandWidth(true))){
+		if(GUILayout.Button(tutorialFinished ? "CONTINUE" : "END TUTORIAL", GUILayout.ExpandWidth(true)) || HitValidateKey ()){
 			GoToNextQuestion();
 			if(!tutorialFinished){
 				gameStep = GameStep.EndTutorial;
@@ -744,7 +802,7 @@ public class GameScript : MonoBehaviour {
 		GUILayout.EndHorizontal();
 		
 		GUILayout.FlexibleSpace();
-		if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true))){
+		if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
 			tutorialShowScore = true;
 			GoToNextQuestion();
 		}
@@ -761,7 +819,7 @@ public class GameScript : MonoBehaviour {
 		
 		GUILayout.FlexibleSpace();
 		GUILayout.BeginHorizontal();
-		if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true))){
+		if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
 			SetTutorialStatus(true);
 			SaveGame();
 			gameStep = GameStep.Question;
