@@ -51,9 +51,7 @@ public class GameScript : MonoBehaviour {
 	int uiIntructionsPage = -2;
 	
 	// Keyboard control game state
-	string lastPressedKey = "";
 	string highlightedKey = "";
-	bool pressingValidateKey = false;
 	
 	#region Properties
 	static bool TouchScreen { get { return Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer; } }
@@ -268,13 +266,11 @@ public class GameScript : MonoBehaviour {
 	}
 	
 	bool HitValidateKey() {
-		bool pressing = Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter) || Input.GetKey(KeyCode.Space);
-		if (pressing != pressingValidateKey){
-			pressingValidateKey = pressing;
-			return pressing;
-		} else {
-			return false;
+		if (Event.current.type == EventType.KeyDown){
+			KeyCode code = Event.current.keyCode;
+			return (code == KeyCode.Return) || (code == KeyCode.KeypadEnter) || (code == KeyCode.Space);
 		}
+		return false;
 	}
 	
 	void GuiAddButtonLine(string[] labelKeys, string mainLabel, Color lowColor, Color highColor)
@@ -282,23 +278,7 @@ public class GameScript : MonoBehaviour {
 		bool validated = HitValidateKey();
 		GUILayout.BeginHorizontal();
 		for(int i = 0; i <= answersPerLine; i++){
-			// Update logic
 			string key = labelKeys[i];
-			if (Input.GetKey(key)){
-				if (lastPressedKey == "")
-				{
-					if (highlightedKey == key){
-						highlightedKey = "";
-					} else {
-						highlightedKey = key;
-					}
-					lastPressedKey = key;
-				}
-			} else{
-				if (lastPressedKey == key) {
-					lastPressedKey = "";
-				}
-			}
 			// Style
 			GUIStyle style = GUI.skin.customStyles[4];
 			if (highlightedKey == key){
@@ -318,13 +298,24 @@ public class GameScript : MonoBehaviour {
 		GUI.backgroundColor = Color.white;
 		GUILayout.EndHorizontal();
 	}
-	
 	void GuiAnswerButtons(){
 		// Add keyboard shortcuts explanation text
+		Event evt = Event.current;
+		if ((evt.type == EventType.KeyDown) && (evt.keyCode != KeyCode.None)) {
+			string key = evt.keyCode.ToString().ToLower();
+			if (key.Length == 1) {
+				if (highlightedKey == key) {
+					highlightedKey = "";
+				}
+				else {
+					highlightedKey = key;
+				}
+			}
+		}
+		GUILayout.Label("hl key: " + highlightedKey);
 		if (highlightedKey != ""){
 			GUILayout.Label("(press Space or Enter to validate)");
-		}
-		else{
+		} else {
 			GUILayout.Label(""); // Seems to maybe perhaps avoid some problems
 		}
 		
@@ -470,7 +461,6 @@ public class GameScript : MonoBehaviour {
 		tutorialAnsweredOneQuestion = true;
 		gameStep = GameStep.Question;
 		// Reinit keyboard shortcuts
-		lastPressedKey = "";
 		highlightedKey = "";
 	}
 	
