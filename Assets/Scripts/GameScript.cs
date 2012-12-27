@@ -30,6 +30,7 @@ public class GameScript : MonoBehaviour {
 
 	// Current game state.
 	GameStep gameStep = GameStep.Start;
+	GameStep updatedStep = GameStep.Start;
 	List<Answer> answers = new List<Answer>();
 	List<Bar> bars = new List<Bar>();
 	int questionCount;//questions asked so far
@@ -51,6 +52,7 @@ public class GameScript : MonoBehaviour {
 	int uiIntructionsPage = -2;
 	
 	// Keyboard control game state
+	string nextHighlightedKey = "";
 	string highlightedKey = "";
 	
 	#region Properties
@@ -167,6 +169,12 @@ public class GameScript : MonoBehaviour {
 		if(gameStep == GameStep.DownloadingDatabases && QuestionDatabase.Progress >= 1f){
 			gameStep = GameStep.QuestionDatabases;
 		}
+		if (updatedStep != gameStep)
+		{
+			updatedStep = gameStep;
+			nextHighlightedKey = "";
+		}
+		highlightedKey = nextHighlightedKey;
 	}
 	
 	void OnGUI(){
@@ -175,6 +183,20 @@ public class GameScript : MonoBehaviour {
 		if(Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer){
 			Input.multiTouchEnabled = false;
 			GUI.skin.customStyles[4].hover = GUI.skin.customStyles[4].normal; // <-- wait, I think this gets saved in the data!
+		}
+		
+		// Update highlighted key
+		Event evt = Event.current;
+		if ((evt.type == EventType.KeyDown) && (evt.keyCode != KeyCode.None)) {
+			string key = evt.keyCode.ToString().ToLower();
+			if (key.Length == 1) {
+				if (nextHighlightedKey == key) {
+					nextHighlightedKey = "";
+				}
+				else {
+					nextHighlightedKey = key;
+				}
+			}
 		}
 
 		// Set highlighted style for keyboard shortcuts (inefficientà
@@ -186,7 +208,7 @@ public class GameScript : MonoBehaviour {
 			StartGameGUI();
 		}
 		else {
-			switch(gameStep)
+			switch(updatedStep)
 			{
 			case GameStep.Start:
 				StartGameGUI();
@@ -318,22 +340,8 @@ public class GameScript : MonoBehaviour {
 	}
 	void GuiAnswerButtons(){
 		// Add keyboard shortcuts explanation text
-		Event evt = Event.current;
-		if ((evt.type == EventType.KeyDown) && (evt.keyCode != KeyCode.None)) {
-			string key = evt.keyCode.ToString().ToLower();
-			if (key.Length == 1) {
-				if (highlightedKey == key) {
-					highlightedKey = "";
-				}
-				else {
-					highlightedKey = key;
-				}
-			}
-		}
 		if (highlightedKey != ""){
 			GUILayout.Label("(press Space or Enter to validate)");
-		} else {
-			GUILayout.Label(""); // Ugly workaround to some problems, would need a more general solution (to wait for all events)
 		}
 		
 		GUILayout.BeginVertical("box");
