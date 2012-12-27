@@ -180,27 +180,45 @@ public class GameScript : MonoBehaviour {
 		// Set highlighted style for keyboard shortcuts (inefficientà
 		highlightedStyle = new GUIStyle(GUI.skin.customStyles[4]);
 		highlightedStyle.normal = highlightedStyle.hover;
-		
 		if(restartingGame){
 			RestartGameGUI();
-		} else if(gameStep == GameStep.Start || uiIntructionsPage >= 0){
+		} else if(uiIntructionsPage >= 0){
 			StartGameGUI();
-		} else if(gameStep == GameStep.Question){
-			GameQuestionGUI();
-		} else if(gameStep == GameStep.Answer){
-			GameAnswerGUI();
-		} else if(gameStep == GameStep.Graph){
-			GameGraphGUI();
-		} else if(gameStep == GameStep.ExplainScores){
-			GameExplainScoresGUI();
-		} else if(gameStep == GameStep.EndTutorial){
-			GameEndTutorialGUI();
-		} else if(gameStep == GameStep.Options){
-			OptionsGUI();
-		} else if(gameStep == GameStep.QuestionTypes){
-			QuestionTypesGUI();
-		} else if(gameStep == GameStep.QuestionDatabases || gameStep == GameStep.DownloadingDatabases){
-			QuestionDatabasesGUI();
+		}
+		else {
+			switch(gameStep)
+			{
+			case GameStep.Start:
+				StartGameGUI();
+				break;
+			case GameStep.Question:
+				GameQuestionGUI();
+				break;
+			case GameStep.Answer:
+				GameAnswerGUI();
+				break;
+			case GameStep.Graph:
+				GameGraphGUI();
+				break;
+			case GameStep.ExplainScores:
+				GameExplainScoresGUI();
+				break;
+			case GameStep.EndTutorial:
+				GameEndTutorialGUI();
+				break;
+			case GameStep.Options:
+				OptionsGUI();
+				break;
+			case GameStep.QuestionTypes:
+				QuestionTypesGUI();
+				break;
+			case GameStep.QuestionDatabases:
+				QuestionDatabasesGUI();
+				break;
+			case GameStep.DownloadingDatabases:
+				DownloadingDatabasesGUI();
+				break;
+			}
 		}
 	}
 	
@@ -312,11 +330,10 @@ public class GameScript : MonoBehaviour {
 				}
 			}
 		}
-		GUILayout.Label("hl key: " + highlightedKey);
 		if (highlightedKey != ""){
 			GUILayout.Label("(press Space or Enter to validate)");
 		} else {
-			GUILayout.Label(""); // Seems to maybe perhaps avoid some problems
+			GUILayout.Label(""); // Ugly workaround to some problems, would need a more general solution (to wait for all events)
 		}
 		
 		GUILayout.BeginVertical("box");
@@ -463,50 +480,54 @@ public class GameScript : MonoBehaviour {
 		// Reinit keyboard shortcuts
 		highlightedKey = "";
 	}
-	
+
+	void DownloadingDatabasesGUI(){
+		StartLayout();
+		
+		GUILayout.Label("QUESTION DATABASES", WelcomeStyle);
+		GUILayout.Label("Download progress: " + (int)(QuestionDatabase.Progress * 100f) + "%");
+		EndLayout();
+	}
+
 	void QuestionDatabasesGUI(){
 		StartLayout();
 		
 		GUILayout.Label("QUESTION DATABASES", WelcomeStyle);
 		
-		if(gameStep == GameStep.DownloadingDatabases){
-			GUILayout.Label("Download progress: " + (int)(QuestionDatabase.Progress * 100f) + "%");
-		} else {
-			uiScrollPosition = GUILayout.BeginScrollView(uiScrollPosition);
-			if(GUILayout.Button("ADD NEW DATABASE")){
-				
-			}
-			foreach(QuestionDatabase database in QuestionDatabase.databases){
-				GUILayout.BeginHorizontal();
-				GUI.enabled = database.downloaded;
-				database.used = GUILayout.Toggle(database.used, database.name);
-				GUI.enabled = true;
-				GUILayout.Label("(" + database.url + ")", NoteStyle);
-				GUILayout.EndHorizontal();
-			}
-			GUILayout.EndScrollView();
+		uiScrollPosition = GUILayout.BeginScrollView(uiScrollPosition);
+		if(GUILayout.Button("ADD NEW DATABASE")){
 			
-			GUILayout.Space(15f);
-			
-			GUILayout.BeginHorizontal();
-			if(GUILayout.Button("UPDATE ALL")){
-				StartCoroutine_Auto(QuestionDatabase.LoadDatabasesFromUrls());
-				gameStep = GameStep.DownloadingDatabases;
-			}
-			if(QuestionDatabase.resultLog != null){
-				GUILayout.Label(QuestionDatabase.resultLog, NoteStyle);
-			}
-			GUILayout.EndHorizontal();
-			
-			GUI.enabled = QuestionDatabase.databases.Exists(db => db.used);
-			if(GUILayout.Button("BACK")){
-				QuestionDatabase.SaveDatabases();
-				QuestionDatabase.resultLog = null;
-				QuestionsScript.singleton.RegenerateQuestions();
-				gameStep = GameStep.Options;
-			}
-			GUI.enabled = true;
 		}
+		foreach(QuestionDatabase database in QuestionDatabase.databases){
+			GUILayout.BeginHorizontal();
+			GUI.enabled = database.downloaded;
+			database.used = GUILayout.Toggle(database.used, database.name);
+			GUI.enabled = true;
+			GUILayout.Label("(" + database.url + ")", NoteStyle);
+			GUILayout.EndHorizontal();
+		}
+		GUILayout.EndScrollView();
+		
+		GUILayout.Space(15f);
+		
+		GUILayout.BeginHorizontal();
+		if(GUILayout.Button("UPDATE ALL")){
+			StartCoroutine_Auto(QuestionDatabase.LoadDatabasesFromUrls());
+			gameStep = GameStep.DownloadingDatabases;
+		}
+		if(QuestionDatabase.resultLog != null){
+			GUILayout.Label(QuestionDatabase.resultLog, NoteStyle);
+		}
+		GUILayout.EndHorizontal();
+		
+		GUI.enabled = QuestionDatabase.databases.Exists(db => db.used);
+		if(GUILayout.Button("BACK")){
+			QuestionDatabase.SaveDatabases();
+			QuestionDatabase.resultLog = null;
+			QuestionsScript.singleton.RegenerateQuestions();
+			gameStep = GameStep.Options;
+		}
+		GUI.enabled = true;
 
 		EndLayout();
 	}
