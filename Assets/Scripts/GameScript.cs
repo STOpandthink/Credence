@@ -24,6 +24,8 @@ public class GameScript : MonoBehaviour {
 	private readonly int[] percentages = {50, 60, 70, 80, 90, 99};
 	private readonly string[] labelKeysA = {"q", "w", "e", "r", "t", "y"};
 	private readonly string[] labelKeysB = {"a", "s", "d", "f", "g", "h"};
+	private readonly int[] labelWidths = {17, 22, 17, 15, 17, 17}; // Width of the widest character above, for alignment
+	
 	private const int answersPerLine = 5;
 
 	GUIStyle highlightedStyle;
@@ -54,6 +56,7 @@ public class GameScript : MonoBehaviour {
 	// Keyboard control game state
 	string nextHighlightedKey = "";
 	string highlightedKey = "";
+	bool waitingForUp = false;
 	
 	#region Properties
 	static bool TouchScreen { get { return Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer; } }
@@ -180,28 +183,41 @@ public class GameScript : MonoBehaviour {
 	void OnGUI(){
 		GUI.skin = defaultSkin;
 
-		if(Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer){
+		if(TouchScreen){
 			Input.multiTouchEnabled = false;
 			GUI.skin.customStyles[4].hover = GUI.skin.customStyles[4].normal; // <-- wait, I think this gets saved in the data!
 		}
-		
-		// Update highlighted key
-		Event evt = Event.current;
-		if ((evt.type == EventType.KeyDown) && (evt.keyCode != KeyCode.None)) {
-			string key = evt.keyCode.ToString().ToLower();
-			if (key.Length == 1) {
-				if (nextHighlightedKey == key) {
-					nextHighlightedKey = "";
+		else
+		{
+			// Listen for keyboard events:
+			Event evt = Event.current;
+			if ((evt.type == EventType.KeyDown) && (evt.keyCode != KeyCode.None)) {
+				string key = evt.keyCode.ToString().ToLower();
+				if (key.Length == 1) {
+					if (nextHighlightedKey == key) {
+						if (!waitingForUp)
+						{
+							nextHighlightedKey = "";
+						}
+					}
+					else {
+						nextHighlightedKey = key;
+					}
+					waitingForUp = true;
 				}
-				else {
-					nextHighlightedKey = key;
+			}
+			else if (waitingForUp && (evt.type == EventType.KeyUp) && (evt.keyCode != KeyCode.None)) {
+				string key = evt.keyCode.ToString().ToLower();
+				if (key.Length == 1) {
+					waitingForUp = false;
 				}
 			}
 		}
 
-		// Set highlighted style for keyboard shortcuts (inefficientà
+		// Set highlighted style for keyboard shortcuts (inefficient)
 		highlightedStyle = new GUIStyle(GUI.skin.customStyles[4]);
 		highlightedStyle.normal = highlightedStyle.hover;
+			
 		if(restartingGame){
 			RestartGameGUI();
 		} else if(uiIntructionsPage >= 0){
@@ -324,8 +340,11 @@ public class GameScript : MonoBehaviour {
 			if (highlightedKey == key){
 				style = highlightedStyle;
 			}
+			
 			// Actual layout
-			GUILayout.Label(key + ":");
+			if(!TouchScreen){
+				GUILayout.Label(key + ":",  GUILayout.Width(labelWidths[i]));
+			}
 			int percent = percentages[i];
 			GUI.backgroundColor = Color.Lerp(lowColor, highColor, percent / 100.0f);
 			if(GUILayout.Button(percent + "%", style) || (validated && (highlightedKey == key))){
@@ -338,6 +357,7 @@ public class GameScript : MonoBehaviour {
 		GUI.backgroundColor = Color.white;
 		GUILayout.EndHorizontal();
 	}
+	
 	void GuiAnswerButtons(){
 		// Add keyboard shortcuts explanation text
 		if (highlightedKey != ""){
