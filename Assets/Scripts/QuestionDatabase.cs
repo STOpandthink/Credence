@@ -17,11 +17,20 @@ public class QuestionDatabase {
 	
 	private static WWW currentRequest;
 	private static float progress;
+	public static bool loadingDatabases = false;
+	public static bool justLoadedDatabases = false;
+	public static string newDatabaseUrl = "";
 	public static string resultLog = "";
 	
 	//Properties.
-	public static float Progress{
+	public string FilePath{
+		get { return Path.Combine(Application.streamingAssetsPath, fileIndex + ".xml"); }
+	}
+	public static float LoadingProgress{
 		get { return progress + (currentRequest != null ? currentRequest.progress / databases.Count : 0f); }
+	}
+	public static float AddingProgress{
+		get { return currentRequest != null ? currentRequest.progress : 0f; }
 	}
 	
 	public override bool Equals(object obj){
@@ -33,6 +42,8 @@ public class QuestionDatabase {
 	public override int GetHashCode (){
 		return url.GetHashCode();
 	}
+	
+	//===== STATIC =====
 	
 	public static void SaveDatabases(){
 		if(Application.isWebPlayer) return;
@@ -76,42 +87,82 @@ public class QuestionDatabase {
 	}
 	
 	public static IEnumerator LoadDatabasesFromUrls(){
+		loadingDatabases = true;
 		progress = 0f;
 		
 		currentRequest = new WWW("http://appliedrationality.org/uploads/games/credence/Databases.txt");
 		yield return currentRequest;
 		if(currentRequest.error != null){
 			resultLog = currentRequest.error;
+		} else {
+			TextReader reader = new StringReader(currentRequest.text);
+			List<QuestionDatabase> newDatabases = LoadDatabasesFromStream(reader, false);
+			reader.Close();
+			int databasesAdded = 0;
+			foreach(QuestionDatabase database in newDatabases){
+				if(databases.Contains(database)) continue;
+				database.fileIndex = globalFileIndex;
+				globalFileIndex++;
+				databases.Add(database);
+				databasesAdded++;
+			}
+			
+			foreach(QuestionDatabase database in databases){
+				currentRequest = new WWW(database.url);
+				yield return currentRequest;
+				if(currentRequest.error != null){
+					resultLog = currentRequest.error;
+				} else {
+					database.downloaded = true;
+					StreamWriter writer = new StreamWriter(database.FilePath);
+					writer.Write(currentRequest.text);
+					writer.Close();
+				}
+				progress += 1f / databases.Count;
+			}
+			
+			resultLog = "Updated all databases successfully." + (databasesAdded > 0 ? (" Added " + databasesAdded + " new databases.") : "");
+			justLoadedDatabases = true;
+		}
+		loadingDatabases = false;
+	}
+	
+	public static IEnumerator TryToAddNewDatabase(){
+		if(databases.Exists(db => db.url.Equals(newDatabaseUrl))){
+			resultLog = "Current database already exists.";
 			yield break;
 		}
 		
-		TextReader reader = new StringReader(currentRequest.text);
-		List<QuestionDatabase> newDatabases = LoadDatabasesFromStream(reader, false);
-		reader.Close();
-		int databasesAdded = 0;
-		foreach(QuestionDatabase database in newDatabases){
-			if(databases.Contains(database)) continue;
-			database.fileIndex = globalFileIndex;
-			globalFileIndex++;
-			databases.Add(database);
-			databasesAdded++;
-		}
+		loadingDatabases = true;
+		progress = 0f;
 		
-		foreach(QuestionDatabase database in databases){
-			currentRequest = new WWW(database.url);
-			yield return currentRequest;
-			if(currentRequest.error != null){
-				resultLog = currentRequest.error;
-				continue;
-			}
-			database.downloaded = true;
-			StreamWriter writer = new StreamWriter(Path.Combine(Application.streamingAssetsPath, database.fileIndex + ".xml"));
+		currentRequest = new WWW(QuestionDatabase.newDatabaseUrl);
+		yield return currentRequest;
+		if(currentRequest.error != null){
+			resultLog = "ERROR: " + currentRequest.error;
+		} else {
+			QuestionDatabase newDatabase = new QuestionDatabase();
+			newDatabase.name = Path.GetFileNameWithoutExtension(QuestionDatabase.newDatabaseUrl);
+			newDatabase.url = QuestionDatabase.newDatabaseUrl;
+			newDatabase.fileIndex = globalFileIndex;
+			newDatabase.used = true;
+			newDatabase.downloaded = true;
+			
+			StreamWriter writer = new StreamWriter(newDatabase.FilePath);
 			writer.Write(currentRequest.text);
 			writer.Close();
-			progress += 1f / databases.Count;
+			
+			QuestionsScript.LoadQuestions(newDatabase);
+			if(newDatabase.downloaded){
+				globalFileIndex++;
+				databases.Add(newDatabase);
+				resultLog = "Added new database successfully.";
+				justLoadedDatabases = true;
+			} else {
+				resultLog = "The database file is not in a valid format.";
+				File.Delete(newDatabase.FilePath);
+			}
 		}
-		
-		SaveDatabases();
-		resultLog = "Updated all databases successfully." + (databasesAdded > 0 ? (" Added " + databasesAdded + " new databases.") : "");
+		loadingDatabases = false;
 	}
 }

@@ -1,12 +1,5 @@
 2
-2
 Official CFAR Questions
 appliedrationality.org/uploads/games/credence/OfficialCfarQuestions.xml
-0
-True
-True
 LessWrong Berlin Meetup Questions
 appliedrationality.org/uploads/games/credence/LW_Berlin.xml
-1
-True
-True

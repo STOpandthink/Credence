@@ -14,7 +14,7 @@ public class GameScript : MonoBehaviour {
 	public GUISkin defaultSkin;
 	public GUISkin barSkin;
 	
-	enum GameStep { Start, Question, Answer, Graph, ExplainScores, EndTutorial, Options, QuestionTypes, QuestionDatabases, DownloadingDatabases };
+	enum GameStep { Start, Question, Answer, Graph, ExplainScores, EndTutorial, Options, QuestionTypes, QuestionDatabases, DownloadingDatabases, AddingNewDatabase };
 	private const int minAnswersForGraph = 5;
 	private const int answersBetweenGraph = 5;
 	private const int lastXScore = 10;
@@ -169,7 +169,12 @@ public class GameScript : MonoBehaviour {
     }
 	
 	void Update(){
-		if(gameStep == GameStep.DownloadingDatabases && QuestionDatabase.Progress >= 1f){
+		if(gameStep == GameStep.DownloadingDatabases && QuestionDatabase.justLoadedDatabases){
+			QuestionDatabase.justLoadedDatabases = false;
+			gameStep = GameStep.QuestionDatabases;
+		}
+		if(gameStep == GameStep.AddingNewDatabase && QuestionDatabase.justLoadedDatabases){
+			QuestionDatabase.justLoadedDatabases = false;
 			gameStep = GameStep.QuestionDatabases;
 		}
 		if (updatedStep != gameStep)
@@ -256,6 +261,9 @@ public class GameScript : MonoBehaviour {
 			case GameStep.DownloadingDatabases:
 				DownloadingDatabasesGUI();
 				break;
+			case GameStep.AddingNewDatabase:
+				AddingNewDatabaseGUI();
+				break;
 			}
 		}
 	}
@@ -329,7 +337,7 @@ public class GameScript : MonoBehaviour {
 		return false;
 	}
 	
-	void GuiAddButtonLine(string[] labelKeys, string mainLabel, Color lowColor, Color highColor)
+	void GuiAddButtonLine(string[] labelKeys, bool aLine, Color lowColor, Color highColor)
 	{
 		bool validated = HitValidateKey();
 		GUILayout.BeginHorizontal();
@@ -348,11 +356,11 @@ public class GameScript : MonoBehaviour {
 			int percent = percentages[i];
 			GUI.backgroundColor = Color.Lerp(lowColor, highColor, percent / 100.0f);
 			if(GUILayout.Button(percent + "%", style) || (validated && (highlightedKey == key))){
-				GiveAnswer(percent, !reverseOptions);
+				GiveAnswer(percent, reverseOptions ^ aLine);
 			}
 		}
 		GUI.contentColor = highColor;
-		GUILayout.Label(mainLabel, GUI.skin.customStyles[2], GUILayout.Width(75f));
+		GUILayout.Label(aLine ? "A" : "B", GUI.skin.customStyles[2], GUILayout.Width(75f));
 		GUI.contentColor = Color.white;
 		GUI.backgroundColor = Color.white;
 		GUILayout.EndHorizontal();
@@ -368,11 +376,11 @@ public class GameScript : MonoBehaviour {
 		
 		// Buttons for answer A
 		if(FirstTutorialQuestion) GUILayout.Label("If you think A is the correct answer, and you think the probability of you being right is 70%, then press the 70% button in the A row (top, cyan row).");
-		GuiAddButtonLine(labelKeysA, "A", answerBColor, answerAColor);
+		GuiAddButtonLine(labelKeysA, true, answerBColor, answerAColor);
 		
 		// Buttons for answer B
 		if(FirstTutorialQuestion) GUILayout.Label("If you don't have any idea what the correct answer is, but you think it's slightly more likely to be B, then press the 50% button in the B row (bottom, green row).");
-		GuiAddButtonLine(labelKeysB, "B", answerAColor, answerBColor);
+		GuiAddButtonLine(labelKeysB, false, answerAColor, answerBColor);
 		
 		GUILayout.EndVertical();
 	}
@@ -513,7 +521,7 @@ public class GameScript : MonoBehaviour {
 		StartLayout();
 		
 		GUILayout.Label("QUESTION DATABASES", WelcomeStyle);
-		GUILayout.Label("Download progress: " + (int)(QuestionDatabase.Progress * 100f) + "%");
+		GUILayout.Label("Download progress: " + (int)(QuestionDatabase.LoadingProgress * 100f) + "%");
 		EndLayout();
 	}
 
@@ -524,7 +532,8 @@ public class GameScript : MonoBehaviour {
 		
 		uiScrollPosition = GUILayout.BeginScrollView(uiScrollPosition);
 		if(GUILayout.Button("ADD NEW DATABASE")){
-			
+			QuestionDatabase.resultLog = "";
+			gameStep = GameStep.AddingNewDatabase;
 		}
 		foreach(QuestionDatabase database in QuestionDatabase.databases){
 			GUILayout.BeginHorizontal();
@@ -538,25 +547,47 @@ public class GameScript : MonoBehaviour {
 		
 		GUILayout.Space(15f);
 		
-		GUILayout.BeginHorizontal();
+		if(QuestionDatabase.resultLog != null){
+			GUILayout.Label(QuestionDatabase.resultLog, NoteStyle);
+		}
 		if(GUILayout.Button("UPDATE ALL")){
 			StartCoroutine_Auto(QuestionDatabase.LoadDatabasesFromUrls());
 			gameStep = GameStep.DownloadingDatabases;
 		}
-		if(QuestionDatabase.resultLog != null){
-			GUILayout.Label(QuestionDatabase.resultLog, NoteStyle);
-		}
-		GUILayout.EndHorizontal();
 		
-		GUI.enabled = QuestionDatabase.databases.Exists(db => db.used);
 		if(GUILayout.Button("BACK")){
-			QuestionDatabase.SaveDatabases();
 			QuestionDatabase.resultLog = null;
-			QuestionsScript.singleton.RegenerateQuestions();
+			QuestionDatabase.SaveDatabases();
+			QuestionsScript.singleton.LoadAllQuestions();
+			QuestionDatabase.SaveDatabases();//save again, in case some databases failed to load
 			gameStep = GameStep.Options;
 		}
-		GUI.enabled = true;
 
+		EndLayout();
+	}
+	
+	void AddingNewDatabaseGUI(){
+		StartLayout();
+		
+		GUILayout.Label("NEW DATABASE", WelcomeStyle);
+		GUILayout.Space(15f);
+		GUILayout.Label("URL:");
+		QuestionDatabase.newDatabaseUrl = GUILayout.TextField(QuestionDatabase.newDatabaseUrl, GUILayout.ExpandWidth(true));
+		if(QuestionDatabase.loadingDatabases){
+			GUILayout.Label("Progress: " + (int)(QuestionDatabase.AddingProgress * 100f) + "%");
+		} else if(GUILayout.Button("ADD")){
+			StartCoroutine(QuestionDatabase.TryToAddNewDatabase());
+		}
+		
+		GUILayout.FlexibleSpace();
+		
+		GUILayout.Label(QuestionDatabase.resultLog, NoteStyle);
+		GUI.enabled = !QuestionDatabase.loadingDatabases;
+		if(GUILayout.Button("BACK")){
+			gameStep = GameStep.QuestionDatabases;
+		}
+		GUI.enabled = true;
+		
 		EndLayout();
 	}
 	
@@ -633,6 +664,7 @@ public class GameScript : MonoBehaviour {
 		GUILayout.Label("OPTIONS", WelcomeStyle);
 		if(GUILayout.Button("QUESTION DATABASES")){
 			uiScrollPosition = Vector2.zero;
+			QuestionsScript.singleton.StopGeneratingQuestions();
 			gameStep = GameStep.QuestionDatabases;
 		}
 		if(GUILayout.Button("QUESTION TYPES")){

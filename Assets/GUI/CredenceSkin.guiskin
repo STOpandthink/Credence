@@ -162,7 +162,7 @@ MonoBehaviour:
       m_Bottom: 0
     m_Padding:
       m_Left: 15
-      m_Right: 0
+      m_Right: 15
       m_Top: 3
       m_Bottom: 0
     m_Margin:
@@ -186,7 +186,7 @@ MonoBehaviour:
     m_FixedHeight: 0
     m_FontSize: 0
     m_FontStyle: 0
-    m_StretchWidth: 1
+    m_StretchWidth: 0
     m_StretchHeight: 0
   m_label:
     m_Name: label
@@ -1712,7 +1712,7 @@ MonoBehaviour:
     m_FixedHeight: 0
     m_FontSize: 0
     m_FontStyle: 0
-    m_StretchWidth: 1
+    m_StretchWidth: 0
     m_StretchHeight: 0
   - m_Name: TagButton
     m_Normal:
