@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Questions>
 
-<QuestionGenerator Tags="Science" Used="y" Type="Match" Weight="1" QuestionText="What unit (SI) is __ measured in?" AdjacentWithin="-1" InfoPrefix="" InfoSuffix="" Source="">
+<QuestionGenerator Tags="Science" Used="y" Type="Match" Weight="1" QuestionText="What (SI) unit is __ measured in?" AdjacentWithin="-1" InfoPrefix="" InfoSuffix="" Source="">
   <Answer Text="length" Value="meter (m)"/>
   <Answer Text="mass" Value="kilogram (kg)"/>
   <Answer Text="time" Value="second (s)"/>
@@ -26,7 +26,6 @@
   <Answer Text="absorbed dose of ionizing radiation" Value="gray (Gy = J kg^-1)"/>
   <Answer Text="equivalent dose of ionizing radiation" Value="sievert (Sv = J kg^-1)"/>
   <Answer Text="catalytic activity" Value="katal (kat = mol s^-1)"/>
-  <Answer Text="length" Value="V"/>
 </QuestionGenerator>
 
 <QuestionGenerator Tags="Science::Astronomy" Used="y" Type="Sorted" Weight="1"

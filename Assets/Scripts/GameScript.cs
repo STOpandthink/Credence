@@ -3,7 +3,6 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using TagUsage = QuestionsScript.TagUsage;
-//using QuestionTag = QuestionsScript.QuestionTag;
 
 public class GameScript : MonoBehaviour {
 	
@@ -18,12 +17,12 @@ public class GameScript : MonoBehaviour {
 	private const int minAnswersForGraph = 5;
 	private const int answersBetweenGraph = 5;
 	private const int lastXScore = 10;
-	private readonly Color answerAColor = Color.cyan;
-	private readonly Color answerBColor = Color.green;
+	private readonly Color answerAColor = new Color(0f / 255f, 204f / 255f, 255f / 255f);
+	private readonly Color answerBColor = new Color(255f / 255f, 204f / 255f, 0f / 255f);
 	private const string saveGameFilename = "SaveGame";
 	private readonly int[] percentages = {50, 60, 70, 80, 90, 99};
-	private readonly string[] labelKeysA = {"q", "w", "e", "r", "t", "y"};
-	private readonly string[] labelKeysB = {"a", "s", "d", "f", "g", "h"};
+	private readonly string[] labelKeysA = {"y", "t", "r", "e", "w", "q"};
+	private readonly string[] labelKeysB = {"h", "g", "f", "d", "s", "a"};
 	private readonly int[] labelWidths = {17, 22, 17, 15, 17, 17}; // Width of the widest character above, for alignment
 	
 	private const int answersPerLine = 5;
@@ -69,7 +68,7 @@ public class GameScript : MonoBehaviour {
 	bool FirstTutorialQuestion { get { return !tutorialAnsweredOneQuestion && !tutorialShowScore ; } }
 	bool SecondTutorialQuestion { get { return tutorialAnsweredOneQuestion && !tutorialShowScore ; } }
 	public int QuestionCount { get { return this.questionCount; } set { this.questionCount = value; } }
-	public int CurrentQuestionIndex { get { return this.currentQuestion; } set { this.currentQuestion = value; } }
+	public int CurrentQuestionIndex { get { return this.currentQuestion; } }
 	public Question CurrentQuestion { get { return QuestionsScript.singleton.GetQuestion(this.currentQuestion); } }
 	#endregion
 	
@@ -286,7 +285,7 @@ public class GameScript : MonoBehaviour {
 	}
 	
 	void SetGuiContentColorForScore(double score){
-		GUI.contentColor = score == 0.0 ? Color.black : score < 0.0 ? new Color(0.2f, 0f, 0f) : new Color(0f, 0f, 0.3f);
+		GUI.contentColor = score == 0.0 ? Color.black : score < 0.0 ? new Color(0.3f, 0f, 0f) : new Color(0f, 0f, 0.4f);
 	}
 	
 	void ShowScores(){
@@ -341,7 +340,10 @@ public class GameScript : MonoBehaviour {
 	{
 		bool validated = HitValidateKey();
 		GUILayout.BeginHorizontal();
-		for(int i = 0; i <= answersPerLine; i++){
+		GUI.contentColor = highColor;
+		GUILayout.Label(aLine ? "A" : "B", GUI.skin.customStyles[2], GUILayout.Width(75f));
+		GUI.contentColor = Color.white;
+		for(int i = answersPerLine; i >= 0; i--){
 			string key = labelKeys[i];
 			// Style
 			GUIStyle style = GUI.skin.customStyles[4];
@@ -354,14 +356,11 @@ public class GameScript : MonoBehaviour {
 				GUILayout.Label(key + ":",  GUILayout.Width(labelWidths[i]));
 			}
 			int percent = percentages[i];
-			GUI.backgroundColor = Color.Lerp(lowColor, highColor, percent / 100.0f);
+			GUI.backgroundColor = Color.Lerp(Color.white, highColor, (percent - 50f) / 50.0f);
 			if(GUILayout.Button(percent + "%", style) || (validated && (highlightedKey == key))){
 				GiveAnswer(percent, reverseOptions ^ aLine);
 			}
 		}
-		GUI.contentColor = highColor;
-		GUILayout.Label(aLine ? "A" : "B", GUI.skin.customStyles[2], GUILayout.Width(75f));
-		GUI.contentColor = Color.white;
 		GUI.backgroundColor = Color.white;
 		GUILayout.EndHorizontal();
 	}
@@ -424,9 +423,21 @@ public class GameScript : MonoBehaviour {
 	void GameAnswerGUI(){
 		StartLayout();
 		
+		bool viewGraphButton = answers.Count >= minAnswersForGraph && answers.Count % answersBetweenGraph == 0;
+		
 		GUILayout.BeginHorizontal();
 		if(tutorialShowScore){
+			GUILayout.BeginVertical();
 			ShowScores();
+			if(tutorialFinished && !viewGraphButton){
+				GUILayout.BeginVertical("box");
+				ViewGraphButton(false, false);
+				if(GUILayout.Button("OPTIONS")){
+					gameStep = GameStep.Options;
+				}
+				GUILayout.EndVertical();
+			}
+			GUILayout.EndVertical();
 			GUILayout.Space(20f);
 		}
 		
@@ -469,21 +480,9 @@ public class GameScript : MonoBehaviour {
 		
 		GUILayout.FlexibleSpace();
 		
-		if(answers.Count >= minAnswersForGraph && answers.Count % answersBetweenGraph == 0){
+		if(viewGraphButton){
 			ViewGraphButton(true, HitValidateKey());
 		} else {
-			// Settings.
-			if(tutorialFinished){
-				GUIEx.RightAligned(() => {
-					GUILayout.BeginHorizontal("box");
-					ViewGraphButton(false, false);
-					if(GUILayout.Button("OPTIONS")){
-						gameStep = GameStep.Options;
-					}
-					GUILayout.EndHorizontal();
-				});
-			}
-			
 			if (tutorialFinished || !SecondTutorialQuestion)
 			{
 				if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
@@ -524,7 +523,8 @@ public class GameScript : MonoBehaviour {
 		GUILayout.Label("Download progress: " + (int)(QuestionDatabase.LoadingProgress * 100f) + "%");
 		EndLayout();
 	}
-
+	
+	bool deleteUnselectedConfirmation = false;
 	void QuestionDatabasesGUI(){
 		StartLayout();
 		
@@ -533,6 +533,7 @@ public class GameScript : MonoBehaviour {
 		uiScrollPosition = GUILayout.BeginScrollView(uiScrollPosition);
 		if(GUILayout.Button("ADD NEW DATABASE")){
 			QuestionDatabase.resultLog = "";
+			deleteUnselectedConfirmation = false;
 			gameStep = GameStep.AddingNewDatabase;
 		}
 		foreach(QuestionDatabase database in QuestionDatabase.databases){
@@ -547,21 +548,42 @@ public class GameScript : MonoBehaviour {
 		
 		GUILayout.Space(15f);
 		
-		if(QuestionDatabase.resultLog != null){
+		if(deleteUnselectedConfirmation){
+			GUILayout.Label("Are you sure you want to delete ALL unselected databases? You can't undo this.");
+		} else if(QuestionDatabase.resultLog != null){
 			GUILayout.Label(QuestionDatabase.resultLog, NoteStyle);
 		}
-		if(GUILayout.Button("UPDATE ALL")){
-			StartCoroutine_Auto(QuestionDatabase.LoadDatabasesFromUrls());
-			gameStep = GameStep.DownloadingDatabases;
-		}
+		
+		GUILayout.BeginHorizontal();
 		
 		if(GUILayout.Button("BACK")){
+			deleteUnselectedConfirmation = false;
+			currentQuestion = -1;
 			QuestionDatabase.resultLog = null;
 			QuestionDatabase.SaveDatabases();
 			QuestionsScript.singleton.LoadAllQuestions();
 			QuestionDatabase.SaveDatabases();//save again, in case some databases failed to load
 			gameStep = GameStep.Options;
 		}
+		
+		GUILayout.FlexibleSpace();
+		
+		if(GUILayout.Button("UPDATE ALL")){
+			deleteUnselectedConfirmation = false;
+			StartCoroutine_Auto(QuestionDatabase.LoadDatabasesFromUrls());
+			gameStep = GameStep.DownloadingDatabases;
+		}
+		
+		GUILayout.FlexibleSpace();
+		
+		if(GUILayout.Button("DELETE UNSELECTED")){
+			if(deleteUnselectedConfirmation){
+				QuestionDatabase.RemoveUnselectedDatabases();
+			}
+			deleteUnselectedConfirmation = !deleteUnselectedConfirmation;
+		}
+		
+		GUILayout.EndHorizontal();
 
 		EndLayout();
 	}
@@ -649,6 +671,7 @@ public class GameScript : MonoBehaviour {
 		GUILayout.BeginHorizontal();
 		if(GUILayout.Button("BACK")){
 			SaveGame();
+			currentQuestion = -1;
 			QuestionsScript.singleton.RegenerateQuestions();
 			gameStep = GameStep.Options;
 		}
@@ -663,6 +686,7 @@ public class GameScript : MonoBehaviour {
 		
 		GUILayout.Label("OPTIONS", WelcomeStyle);
 		if(GUILayout.Button("QUESTION DATABASES")){
+			deleteUnselectedConfirmation = false;
 			uiScrollPosition = Vector2.zero;
 			QuestionsScript.singleton.StopGeneratingQuestions();
 			gameStep = GameStep.QuestionDatabases;

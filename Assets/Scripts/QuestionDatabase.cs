@@ -45,6 +45,14 @@ public class QuestionDatabase {
 	
 	//===== STATIC =====
 	
+	public static void RemoveUnselectedDatabases(){
+		foreach(QuestionDatabase database in databases){
+			if(database.used) continue;
+			File.Delete(database.FilePath);
+		}
+		databases.RemoveAll(db => !db.used);
+	}
+	
 	public static void SaveDatabases(){
 		if(Application.isWebPlayer) return;
 		StreamWriter writer = new StreamWriter(Path.Combine(Application.streamingAssetsPath, DATABASES_FILENAME));

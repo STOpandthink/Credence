@@ -9,3 +9,5 @@ EditorBuildSettings:
     path: Assets/Updating.unity
   - enabled: 0
     path: Assets/Confidence.unity
+  - enabled: 1
+    path: Assets/Credence.unity

@@ -15,7 +15,6 @@ public class QuestionsScript : MonoBehaviour {
 	
 	public GameObject gamePrefab;
 	
-	private int currentQuestionIndex = -1;
 	private List<Question> questions;
 	private List<QuestionGenerator>.Enumerator qEnum;
 	private static bool qEnumValid = false;
@@ -65,8 +64,7 @@ public class QuestionsScript : MonoBehaviour {
 	}
 	
 	public Question GetQuestion(int questionIndex){
-		currentQuestionIndex = questionIndex;
-		return questions[currentQuestionIndex];
+		return questions[questionIndex];
 	}
 	
 	public static void LoadQuestions(QuestionDatabase database){
@@ -78,7 +76,7 @@ public class QuestionsScript : MonoBehaviour {
 					generator.m_database = database;
 					if(generator != null){
 						qEnumValid = false;
-						generators.Add(generator);
+						if(database.used) generators.Add(generator);
 						foreach(string tag in generator.m_tags){
 							tags[tag] = TagUsage.Some;
 							if(HasSubTag(tag)) tags[GetParentTag(tag)] = TagUsage.Some;
@@ -94,7 +92,6 @@ public class QuestionsScript : MonoBehaviour {
 	
 	public void RegenerateQuestions(){
 		questions = new List<Question>();
-		currentQuestionIndex = 0;
 		while(questions.Count < 2){
 			GenerateQuestionsStep();
 		}
@@ -121,6 +118,7 @@ public class QuestionsScript : MonoBehaviour {
 	
 	IEnumerator GenerateQuestions() {
 		while(true){
+			int currentQuestionIndex = GameScript.singleton == null ? 0 : GameScript.singleton.CurrentQuestionIndex;
 			if(questions.Count - currentQuestionIndex <= 10){
 				GenerateQuestionsStep();
 			}
