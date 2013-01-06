@@ -209,6 +209,11 @@ public class GameScript : MonoBehaviour {
 					}
 					waitingForUp = true;
 				}
+				if (evt.keyCode == KeyCode.Escape)
+				{
+					// Since all progress is saved, the user doesn't actually lose anything by quitting now
+					Application.Quit();
+				}
 			}
 			else if (waitingForUp && (evt.type == EventType.KeyUp) && (evt.keyCode != KeyCode.None)) {
 				string key = evt.keyCode.ToString().ToLower();
@@ -435,6 +440,9 @@ public class GameScript : MonoBehaviour {
 				if(GUILayout.Button("OPTIONS")){
 					gameStep = GameStep.Options;
 				}
+				if(GUILayout.Button("QUIT")) {
+					Application.Quit();
+				}
 				GUILayout.EndVertical();
 			}
 			GUILayout.EndVertical();
@@ -479,25 +487,23 @@ public class GameScript : MonoBehaviour {
 		}
 		
 		GUILayout.FlexibleSpace();
-		
-		if(viewGraphButton){
+
+		if(forceViewGraph){
+			// Display a full-width "view graph" button
 			ViewGraphButton(true, HitValidateKey());
+		} else if (tutorialFinished || !SecondTutorialQuestion) {
+			if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
+				GoToNextQuestion();
+			}
 		} else {
-			if (tutorialFinished || !SecondTutorialQuestion)
-			{
-				if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
-					GoToNextQuestion();
-				}
-			} else {
-				if(GUILayout.Button("OKAY, GET MORE POINTS. GOT IT.", GUILayout.ExpandWidth(true)) || HitValidateKey()){
-					gameStep = GameStep.ExplainScores;
-				}
+			if(GUILayout.Button("OKAY, GET MORE POINTS. GOT IT.", GUILayout.ExpandWidth(true)) || HitValidateKey()){
+				gameStep = GameStep.ExplainScores;
 			}
 		}
 		
 		EndLayout();
 	}
-	
+
 	void ViewGraphButton(bool expandButton, bool isKeyPressed){
 		if(GUILayout.Button("VIEW GRAPH", GUILayout.ExpandWidth(expandButton)) || isKeyPressed){
 			selectedBar = -1;
