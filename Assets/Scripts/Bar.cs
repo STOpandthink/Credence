@@ -78,6 +78,14 @@ public class Bar {
 	}
 
 	public static List<Bar> GetBars(List<Answer> answers){
+		// only get the last 100 answers
+		List<Answer> recentAnswers;
+		int maxAnswers = 100;
+		if (answers.Count > maxAnswers) {
+			recentAnswers = answers.GetRange(answers.Count - maxAnswers, maxAnswers);
+		} else {
+			recentAnswers = answers;
+		}
 		// Sort answers into buckets
 		List<Bar> answerBars = new List<Bar>();
 		int bucketIndex = 0;
@@ -85,7 +93,7 @@ public class Bar {
 			if(answerBars.Count <= bucketIndex){
 				answerBars.Add(new Bar());
 			}
-			answerBars[bucketIndex].AddRange(answers.FindAll((tempAnswer) => tempAnswer.percentConfidence == (p == 100.0 ? 99.0 : p)));
+			answerBars[bucketIndex].AddRange(recentAnswers.FindAll((tempAnswer) => tempAnswer.percentConfidence == (p == 100.0 ? 99.0 : p)));
 			if(answerBars[bucketIndex].Count >= m_answersPerBucket) bucketIndex++;
 		}
 		int buckets = answerBars.Count;
