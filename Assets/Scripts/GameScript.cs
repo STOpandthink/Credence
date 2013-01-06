@@ -432,21 +432,7 @@ public class GameScript : MonoBehaviour {
 		
 		GUILayout.BeginHorizontal();
 		if(tutorialShowScore){
-			GUILayout.BeginVertical();
 			ShowScores();
-			if(tutorialFinished && !viewGraphButton){
-				GUILayout.BeginVertical("box");
-				ViewGraphButton(false, false);
-				if(GUILayout.Button("OPTIONS")){
-					gameStep = GameStep.Options;
-				}
-				if(GUILayout.Button("QUIT")) {
-					Application.Quit();
-				}
-				GUILayout.EndVertical();
-			}
-			GUILayout.EndVertical();
-			GUILayout.Space(20f);
 		}
 		
 		GUILayout.BeginVertical(GUILayout.ExpandWidth(true));
@@ -487,8 +473,22 @@ public class GameScript : MonoBehaviour {
 		}
 		
 		GUILayout.FlexibleSpace();
+		
+		if(tutorialFinished && !viewGraphButton){
+			GUIEx.RightAligned(() => {
+				GUILayout.BeginHorizontal("box");
+				ViewGraphButton(false, false);
+				if(GUILayout.Button("OPTIONS")){
+					gameStep = GameStep.Options;
+				}
+				if(GUILayout.Button("QUIT")) {
+					Application.Quit();
+				}
+				GUILayout.EndHorizontal();
+			});
+		}
 
-		if(forceViewGraph){
+		if(viewGraphButton){
 			// Display a full-width "view graph" button
 			ViewGraphButton(true, HitValidateKey());
 		} else if (tutorialFinished || !SecondTutorialQuestion) {
