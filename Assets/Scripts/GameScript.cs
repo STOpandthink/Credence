@@ -210,6 +210,11 @@ public class GameScript : MonoBehaviour {
 					}
 					waitingForUp = true;
 				}
+				if (evt.keyCode == KeyCode.Escape)
+				{
+					// Since all progress is saved, the user doesn't actually lose anything by quitting now
+					Application.Quit();
+				}
 			}
 			else if (waitingForUp && (evt.type == EventType.KeyUp) && (evt.keyCode != KeyCode.None)) {
 				string key = evt.keyCode.ToString().ToLower();
@@ -469,36 +474,42 @@ public class GameScript : MonoBehaviour {
 		
 		GUILayout.FlexibleSpace();
 		
-		if(answers.Count >= minAnswersForGraph && answers.Count % answersBetweenGraph == 0){
-			ViewGraphButton(true, HitValidateKey());
-		} else {
-			// Settings.
-			if(tutorialFinished){
-				GUIEx.RightAligned(() => {
-					GUILayout.BeginHorizontal("box");
+		
+		bool forceViewGraph = answers.Count >= minAnswersForGraph && answers.Count % answersBetweenGraph == 0;
+		// Settings.
+		if(tutorialFinished){
+			// Display a "view graph" button on the right, along with options and quit.
+			GUIEx.RightAligned(() => {
+				GUILayout.BeginHorizontal("box");
+				if (!forceViewGraph) {
 					ViewGraphButton(false, false);
-					if(GUILayout.Button("OPTIONS")){
-						gameStep = GameStep.Options;
-					}
-					GUILayout.EndHorizontal();
-				});
+				}
+				if(GUILayout.Button("OPTIONS")){
+					gameStep = GameStep.Options;
+				}
+				if(GUILayout.Button("QUIT")){
+					Application.Quit();
+				}
+				GUILayout.EndHorizontal();
+			});
+		}
+
+		if(forceViewGraph){
+			// Display a full-width "view graph" button
+			ViewGraphButton(true, HitValidateKey());
+		} else if (tutorialFinished || !SecondTutorialQuestion) {
+			if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
+				GoToNextQuestion();
 			}
-			
-			if (tutorialFinished || !SecondTutorialQuestion)
-			{
-				if(GUILayout.Button("NEXT QUESTION", GUILayout.ExpandWidth(true)) || HitValidateKey()){
-					GoToNextQuestion();
-				}
-			} else {
-				if(GUILayout.Button("OKAY, GET MORE POINTS. GOT IT.", GUILayout.ExpandWidth(true)) || HitValidateKey()){
-					gameStep = GameStep.ExplainScores;
-				}
+		} else {
+			if(GUILayout.Button("OKAY, GET MORE POINTS. GOT IT.", GUILayout.ExpandWidth(true)) || HitValidateKey()){
+				gameStep = GameStep.ExplainScores;
 			}
 		}
 		
 		EndLayout();
 	}
-	
+
 	void ViewGraphButton(bool expandButton, bool isKeyPressed){
 		if(GUILayout.Button("VIEW GRAPH", GUILayout.ExpandWidth(expandButton)) || isKeyPressed){
 			selectedBar = -1;
