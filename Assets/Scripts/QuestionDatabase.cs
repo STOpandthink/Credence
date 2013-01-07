@@ -46,8 +46,10 @@ public class QuestionDatabase {
 	//===== STATIC =====
 	
 	public static void RemoveUnselectedDatabases(){
+		int numDeleted = 0;
 		foreach(QuestionDatabase database in databases){
 			if(database.used) continue;
+			if(numDeleted >= databases.Count - 1) break;
 			File.Delete(database.FilePath);
 		}
 		databases.RemoveAll(db => !db.used);

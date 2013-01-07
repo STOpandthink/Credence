@@ -379,11 +379,11 @@ public class GameScript : MonoBehaviour {
 		GUILayout.BeginVertical("box");
 		
 		// Buttons for answer A
-		if(FirstTutorialQuestion) GUILayout.Label("If you think A is the correct answer, and you think the probability of you being right is 70%, then press the 70% button in the A row (top, cyan row).");
+		if(FirstTutorialQuestion) GUILayout.Label("If you think A is the correct answer, and you think the probability of you being right is 70%, then press the 70% button in the A row.");
 		GuiAddButtonLine(labelKeysA, true, answerBColor, answerAColor);
 		
 		// Buttons for answer B
-		if(FirstTutorialQuestion) GUILayout.Label("If you don't have any idea what the correct answer is, but you think it's slightly more likely to be B, then press the 50% button in the B row (bottom, green row).");
+		if(FirstTutorialQuestion) GUILayout.Label("If you don't have any idea what the correct answer is, but you think it's slightly more likely to be B, then press the 50% button in the B row.");
 		GuiAddButtonLine(labelKeysB, false, answerAColor, answerBColor);
 		
 		GUILayout.EndVertical();
@@ -828,11 +828,12 @@ public class GameScript : MonoBehaviour {
 				GuiAnswersBox(CurrentQuestion.m_correctAnswerText, CurrentQuestion.m_wrongAnswerText);
 				GUILayout.Label("You'll have to pick what answer you think is correct. Moreover, you'll have to specify how confident you are in your answer.");
 				GUILayout.Label("If you answer the question correctly, you will gain points. If you answer the question incorrectly, you will lose points.");
+				GUILayout.Space(20f);
 				GUILayout.Label("Your goal is to get as many points as you can.");
 				
 				GUILayout.FlexibleSpace();
 				
-				if(GUILayout.Button("LET'S DO THIS!", GUILayout.ExpandWidth(true))){
+				if(GUILayout.Button("LET'S DO THIS!", GUILayout.ExpandWidth(true)) || HitValidateKey ()){
 					gameStep = GameStep.Question;
 				}
 			}
