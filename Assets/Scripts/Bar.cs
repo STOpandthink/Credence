@@ -77,11 +77,10 @@ public class Bar {
 		return list + "}";
 	}
 
-	public static List<Bar> GetBars(List<Answer> answers){
+	public static List<Bar> GetBars(List<Answer> answers, int maxAnswers){
 		// only get the last 100 answers
 		List<Answer> recentAnswers;
-		int maxAnswers = 100;
-		if (answers.Count > maxAnswers) {
+		if ((answers.Count > maxAnswers) && (maxAnswers > 0)) {
 			recentAnswers = answers.GetRange(answers.Count - maxAnswers, maxAnswers);
 		} else {
 			recentAnswers = answers;

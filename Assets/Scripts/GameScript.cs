@@ -47,6 +47,7 @@ public class GameScript : MonoBehaviour {
 	double probOfCorrectAnswer;
 	double totalScore;
 	double averageScore;
+	bool showingFullGraph = true;
 	
 	Vector2 uiScrollPosition;
 	bool uiShowAllInstructions = false;
@@ -507,8 +508,9 @@ public class GameScript : MonoBehaviour {
 	void ViewGraphButton(bool expandButton, bool isKeyPressed){
 		if(GUILayout.Button("VIEW GRAPH", GUILayout.ExpandWidth(expandButton)) || isKeyPressed){
 			selectedBar = -1;
-			bars = Bar.GetBars(answers);
+			bars = Bar.GetBars(answers, -1);
 			gameStep = GameStep.Graph;
+			showingFullGraph = true;
 		}
 	}
 	
@@ -743,14 +745,33 @@ public class GameScript : MonoBehaviour {
 			Graph.OffsetX = GUILayoutUtility.GetLastRect().xMax / Screen.width;
 		}
 		GUILayout.EndHorizontal();
-		
+
+		if (showingFullGraph) {
+			GUILayout.Label("Showing all " + answers.Count);
+			if (answers.Count > 100) {
+				if (GUILayout.Button("Restrict to last 100")) {
+					bars = Bar.GetBars(answers, 100);
+					selectedBar = -1;
+					showingFullGraph = false;
+				}
+			}
+		}
+		else {
+			GUILayout.Label("Showing last 100");
+			if (GUILayout.Button("Show all " + answers.Count)) {
+				bars = Bar.GetBars(answers, -1);
+				selectedBar = -1;
+				showingFullGraph = true;
+			}
+		}
+
 		GUILayout.FlexibleSpace();
 		GUILayout.Space(10f);
 		if(Event.current.type == EventType.Repaint){
 			Graph.Height = GUILayoutUtility.GetLastRect().yMax / Screen.height;
 		}
 		
-		if(selectedBar >= 0){
+		if((selectedBar >= 0) && (selectedBar < bars.Count)){
 			Bar bar = bars[selectedBar];
 			uiScrollPosition = GUILayout.BeginScrollView(uiScrollPosition);
 			if(tutorialFinished){
